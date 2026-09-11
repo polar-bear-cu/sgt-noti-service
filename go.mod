@@ -2,7 +2,10 @@ module github.com/polar-bear-cu/sgt-noti-service
 
 go 1.26.5
 
-require github.com/gin-gonic/gin v1.12.0
+require (
+	github.com/gin-gonic/gin v1.12.0
+	github.com/rabbitmq/amqp091-go v1.14.0
+)
 
 require (
 	github.com/bytedance/gopkg v0.1.3 // indirect
