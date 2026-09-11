@@ -1,9 +1,15 @@
 services:
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025" # smtp
+      - "8025:8025" # ui
+
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     ports:
-      - "5672:5672" # AMQP
-      - "15672:15672" # management UI
+      - "5672:5672" # amqp
+      - "15672:15672" # ui
     environment:
       TZ: Asia/Bangkok
     healthcheck:
