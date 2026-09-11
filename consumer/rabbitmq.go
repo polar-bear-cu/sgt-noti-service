@@ -11,6 +11,7 @@ import (
 	"github.com/polar-bear-cu/sgt-noti-service/usecases"
 )
 
+// Same as Queue Name in scheduler publisher
 const QueueName = "email_notifications"
 
 type RabbitMQConsumer struct {
