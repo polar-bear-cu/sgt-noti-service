@@ -97,15 +97,14 @@ Check `Makefile`
 - RabbitMQ management UI: `localhost:15672` (guest/guest) - ดูคิว
 - mongo-express: `localhost:8089` - ดู log
 
-## Email flow test
+### Email flow test
 
 1. Restart Go service หลังเปลี่ยน DTO: `Ctrl+C` แล้ว `go run .`
 2. เปิด `http://localhost:8088/health` และตรวจ `status: ok`
-3. เปิด RabbitMQ Management → Queues and Streams → `email_notifications` → Publish message
+3. เปิด `RabbitMQ Management` → Queues and Streams → `email_notifications` → Publish message
 4. Publish extended JSON ด้านบน
-5. เปิด MailHog ตรวจ subject/body และผู้รับ
-6. เปิด Mongo Express → database `noti` → collection `email_logs` ตรวจ record ที่มี `status: sent`
-7. ทดสอบ legacy JSON เพื่อยืนยัน compatibility
+5. เปิด `MailHog` ตรวจ subject/body และผู้รับ
+6. เปิด `Mongo Express` → database `noti` → collection `email_logs` ตรวจ record ที่มี `status: sent`
 
 การทดสอบนี้ยืนยันว่า email flow ยังทำงานเมื่อมี fields ใหม่เท่านั้น ไม่ได้ยืนยันว่า metadata ถูกบันทึกหรือป้องกัน duplicate แล้ว.
 ถ้าต้องการตรวจ mapping ของ DTO โดยตรง ให้ตรวจ `json.Unmarshal` ด้วย debugger หรือ unit test.
