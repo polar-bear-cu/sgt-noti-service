@@ -21,23 +21,27 @@ func NewNotification(mailer Mailer, logs repositories.NotificationLogRepository)
 	return &NotificationUsecase{mailer: mailer, logs: logs}
 }
 
-func (u *NotificationUsecase) Send(ctx context.Context, to, subject, body string) error {
-	sendErr := u.mailer.Send(ctx, to, subject, body)
+func (u *NotificationUsecase) Send(ctx context.Context, to, title, content string) error {
+	now := time.Now()
+
+	sendErr := u.mailer.Send(ctx, to, title, content)
 
 	log := models.NotificationLog{
-		To:      to,
-		Subject: subject,
-		Body:    body,
-		Status:  models.StatusSent,
-		SentAt:  time.Now(),
+		To:        to,
+		Title:     title,
+		Content:   content,
+		Status:    models.StatusSent,
+		CreatedAt: now,
+		SentAt:    now,
 	}
+
 	if sendErr != nil {
 		log.Status = models.StatusFailed
-		log.Error = sendErr.Error()
 	}
 
 	if err := u.logs.Create(ctx, log); err != nil {
 		return err
 	}
+
 	return sendErr
 }

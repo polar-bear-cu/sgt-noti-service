@@ -61,7 +61,7 @@ func (c *RabbitMQConsumer) handle(ctx context.Context, d amqp.Delivery) {
 		return
 	}
 
-	if err := c.uc.Send(ctx, msg.To, msg.Subject, msg.Body); err != nil {
+	if err := c.uc.Send(ctx, msg.To, msg.Title, msg.Content); err != nil {
 		log.Printf("email_notifications: send failed: %v", err)
 		_ = d.Nack(false, true)
 		return

@@ -8,11 +8,11 @@ const (
 )
 
 type NotificationLog struct {
-	ID      string
-	To      string
-	Subject string
-	Body    string
-	Status  string
-	Error   string
-	SentAt  time.Time
+	ID        string
+	To        string
+	Title     string
+	Content   string
+	Status    string
+	CreatedAt time.Time
+	SentAt    time.Time
 }
