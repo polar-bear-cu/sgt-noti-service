@@ -14,8 +14,6 @@ producer (เช่น sgt-scheduler) publish JSON ไป queue `email_notificat
 }
 ```
 
-IDs และวันที่ข้างต้นมีไว้สำหรับทดสอบเท่านั้น user/subscription ไม่จำเป็นสำหรับการทดสอบ email worker
-
 | Field     | JSON type | Meaning                                             |
 | --------- | --------- | --------------------------------------------------- |
 | `to`      | string    | Email ผู้รับ                                        |
@@ -28,15 +26,15 @@ Notification Service ไม่จำเป็นต้องรู้ schema ข
 
 หลังจากประมวลผล email แล้ว Notification Service บันทึกผลลง MongoDB collection `email_logs`
 
-| Field        | Meaning                               |
-| ------------ | ------------------------------------- |
-| `id`         | ID ของ notification log               |
-| `to`         | Email ผู้รับ                          |
-| `title`      | หัวข้อ email                          |
-| `content`    | เนื้อหา email                         |
-| `status`     | สถานะการส่ง เช่น `sent` หรือ `failed` |
-| `created_at` | เวลาที่สร้าง notification log         |
-| `sent_at`    | เวลาที่ส่ง email                      |
+| Field        | Meaning                                             |
+| ------------ | --------------------------------------------------- |
+| `_id`        | ID ที่ MongoDB สร้างให้โดยอัตโนมัติ                 |
+| `to`         | Email ผู้รับ                                        |
+| `title`      | หัวข้อ email                                        |
+| `content`    | เนื้อหา email                                       |
+| `status`     | สถานะการส่ง เช่น `sent` หรือ `failed`               |
+| `created_at` | เวลาที่สร้าง notification log                       |
+| `sent_at`    | เวลาที่ส่ง email สำเร็จ หรือ `null` หากส่งไม่สำเร็จ |
 
 ### Structure
 
@@ -104,3 +102,16 @@ Check `Makefile`
 5. เปิด MailHog แล้วตรวจว่า email subject ตรงกับ `title`, body ตรงกับ `content` และผู้รับถูกต้อง
 6. เปิด Mongo Express → database `noti` → collection `email_logs`
 7. ตรวจ record ว่ามี `to`, `title`, `content`, `status`, `created_at`, `sent_at` ตรงตามที่ service ประมวลผล
+
+ตัวอย่างการ Publish JSON
+Example:
+
+![Publish email notification message in RabbitMQ](docs/images/rabbitmq-publish-email-noifications.png)
+
+ตัวอย่างผลลัพธ์ใน MailHog
+
+![Publish email notification message in MailHog](docs/images/mailhog-publish-email-noifications.png)
+
+ตัวอย่างผลลัพธ์ใน Mongo Experss
+
+![Publish email notification message in Mongo Express](docs/images/mongo-express-publish-email-noifications.png)

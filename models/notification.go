@@ -8,11 +8,10 @@ const (
 )
 
 type NotificationLog struct {
-	ID        string
 	To        string
 	Title     string
 	Content   string
 	Status    string
 	CreatedAt time.Time
-	SentAt    time.Time
+	SentAt    *time.Time
 }

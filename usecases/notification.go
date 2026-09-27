@@ -30,13 +30,16 @@ func (u *NotificationUsecase) Send(ctx context.Context, to, title, content strin
 		To:        to,
 		Title:     title,
 		Content:   content,
-		Status:    models.StatusSent,
 		CreatedAt: now,
-		SentAt:    now,
 	}
 
 	if sendErr != nil {
 		log.Status = models.StatusFailed
+		log.SentAt = nil
+	} else {
+		sentAt := time.Now()
+		log.Status = models.StatusSent
+		log.SentAt = &sentAt
 	}
 
 	if err := u.logs.Create(ctx, log); err != nil {
