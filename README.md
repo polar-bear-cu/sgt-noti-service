@@ -111,6 +111,6 @@ Check `Makefile`
 
 ![Publish email notification message in MailHog](docs/images/mailhog-publish-email-notifications.png)
 
-ตัวอย่างผลลัพธ์ใน Mongo Experss:
+ตัวอย่างผลลัพธ์ใน Mongo Express:
 
 ![Publish email notification message in Mongo Express](docs/images/mongo-express-publish-email-notifications.png)
