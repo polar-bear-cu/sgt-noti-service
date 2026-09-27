@@ -103,15 +103,14 @@ Check `Makefile`
 6. เปิด Mongo Express → database `noti` → collection `email_logs`
 7. ตรวจ record ว่ามี `to`, `title`, `content`, `status`, `created_at`, `sent_at` ตรงตามที่ service ประมวลผล
 
-ตัวอย่างการ Publish JSON
-Example:
+ตัวอย่างการ Publish JSON:
 
 ![Publish email notification message in RabbitMQ](docs/images/rabbitmq-publish-email-noifications.png)
 
-ตัวอย่างผลลัพธ์ใน MailHog
+ตัวอย่างผลลัพธ์ใน MailHog:
 
-![Publish email notification message in MailHog](docs/images/mailhog-publish-email-noifications.png)
+![Publish email notification message in MailHog](docs/images/mailhog-publish-email-notifications.png)
 
-ตัวอย่างผลลัพธ์ใน Mongo Experss
+ตัวอย่างผลลัพธ์ใน Mongo Experss:
 
-![Publish email notification message in Mongo Express](docs/images/mongo-express-publish-email-noifications.png)
+![Publish email notification message in Mongo Express](docs/images/mongo-express-publish-email-notifications.png)
