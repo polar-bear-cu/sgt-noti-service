@@ -2,6 +2,6 @@ package dtos
 
 type EmailMessage struct {
 	To      string `json:"to"`
-	Subject string `json:"subject"`
-	Body    string `json:"body"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
 }

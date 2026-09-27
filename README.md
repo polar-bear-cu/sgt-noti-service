@@ -4,25 +4,49 @@ worker consume message จาก RabbitMQ แล้วส่งอีเมล�
 
 ### Message contract
 
-producer (เช่น sgt-scheduler) publish JSON ไปคิว `email_notifications`:
+producer (เช่น sgt-scheduler) publish JSON ไป queue `email_notifications`:
 
 ```json
-{ "to": "user@example.com", "subject": "...", "body": "..." }
+{
+    "to": "test@example.com",
+    "title": "Upcoming charge: Netflix",
+    "content": "Your Netflix subscription renews in 3 days."
+}
 ```
 
-service นี้ไม่รู้จัก schema ของ subscription/user เลย - format เนื้อหาเมลเป็นหน้าที่ producer
+| Field     | JSON type | Meaning                                             |
+| --------- | --------- | --------------------------------------------------- |
+| `to`      | string    | Email ผู้รับ                                        |
+| `title`   | string    | หัวข้อ email ที่ producer จัดเตรียมแล้ว             |
+| `content` | string    | เนื้อหา plain-text email ที่ producer จัดเตรียมแล้ว |
+
+Notification Service ไม่จำเป็นต้องรู้ schema ของ user หรือ subscription โดยตรง โดย producer เป็นผู้เตรียมข้อมูลสำหรับ email ก่อน publish message เข้า RabbitMQ
+
+### Notification log
+
+หลังจากประมวลผล email แล้ว Notification Service บันทึกผลลง MongoDB collection `email_logs`
+
+| Field        | Meaning                                             |
+| ------------ | --------------------------------------------------- |
+| `_id`        | ID ที่ MongoDB สร้างให้โดยอัตโนมัติ                 |
+| `to`         | Email ผู้รับ                                        |
+| `title`      | หัวข้อ email                                        |
+| `content`    | เนื้อหา email                                       |
+| `status`     | สถานะการส่ง เช่น `sent` หรือ `failed`               |
+| `created_at` | เวลาที่สร้าง notification log                       |
+| `sent_at`    | เวลาที่ส่ง email สำเร็จ หรือ `null` หากส่งไม่สำเร็จ |
 
 ### Structure
 
-```
+```text
 consumer/       RabbitMQ consumer, decode message -> เรียก usecase
-usecases/       ผูก mailer + repository, ตัดสิน status
-mailer/         SMTP adapter (usecase กำหนด interface เอง)
-repositories/   Mongo adapter เก็บ log (usecase กำหนด interface เอง)
+usecases/       ผูก mailer + repository, ตัดสิน status และสร้าง notification log
+mailer/         SMTP adapter
+repositories/   Mongo adapter เก็บ notification log
 models/         NotificationLog struct
-dtos/           queue message struct
+dtos/           EmailMessage queue message struct
 routes/         GET /health
-config/         env loader + mongo/rabbitmq connection
+config/         env loader + MongoDB/RabbitMQ connection
 ```
 
 flow: `consumer -> usecases -> mailer (ส่งเมล) + repositories (log ผล)`
@@ -37,6 +61,7 @@ flow: `consumer -> usecases -> mailer (ส่งเมล) + repositories (log �
 ```terminal
 go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 go install github.com/evilmartians/lefthook@latest
+lefthook install
 ```
 
 ### Setup
@@ -67,3 +92,25 @@ Check `Makefile`
 - MailHog UI: `localhost:8025` - ดูเมลที่ส่งออก
 - RabbitMQ management UI: `localhost:15672` (guest/guest) - ดูคิว
 - mongo-express: `localhost:8089` - ดู log
+
+### Email flow test
+
+1. Restart Go service หลังเปลี่ยน DTO: `Ctrl+C` แล้ว `go run .`
+2. เปิด `http://localhost:8088/health` และตรวจ `status: ok`
+3. เปิด RabbitMQ Management → Queues and Streams → `email_notifications` → Publish message
+4. Publish JSON ตาม message contract ด้านบน
+5. เปิด MailHog แล้วตรวจว่า email subject ตรงกับ `title`, body ตรงกับ `content` และผู้รับถูกต้อง
+6. เปิด Mongo Express → database `noti` → collection `email_logs`
+7. ตรวจ record ว่ามี `to`, `title`, `content`, `status`, `created_at`, `sent_at` ตรงตามที่ service ประมวลผล
+
+ตัวอย่างการ Publish JSON:
+
+![Publish email notification message in RabbitMQ](docs/images/rabbitmq-publish-email-noifications.png)
+
+ตัวอย่างผลลัพธ์ใน MailHog:
+
+![Publish email notification message in MailHog](docs/images/mailhog-publish-email-notifications.png)
+
+ตัวอย่างผลลัพธ์ใน Mongo Express:
+
+![Publish email notification message in Mongo Express](docs/images/mongo-express-publish-email-notifications.png)

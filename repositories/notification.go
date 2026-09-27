@@ -23,12 +23,12 @@ func NewNotificationLogMongo(db *mongo.Database) *NotificationLogMongo {
 
 func (r *NotificationLogMongo) Create(ctx context.Context, log models.NotificationLog) error {
 	_, err := r.col.InsertOne(ctx, bson.M{
-		"to":      log.To,
-		"subject": log.Subject,
-		"body":    log.Body,
-		"status":  log.Status,
-		"error":   log.Error,
-		"sentAt":  log.SentAt,
+		"to":         log.To,
+		"title":      log.Title,
+		"content":    log.Content,
+		"status":     log.Status,
+		"created_at": log.CreatedAt,
+		"sent_at":    log.SentAt,
 	})
 	return err
 }
