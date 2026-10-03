@@ -38,6 +38,9 @@ func main() {
 	defer func() { _ = rmqConn.Close() }()
 
 	logs := repositories.NewNotificationLogMongo(mongoClient.Database(cfg.MongoDBName))
+	if err := logs.EnsureIndexes(ctx); err != nil {
+		log.Fatal(err)
+	}
 	mail := mailer.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPFrom, cfg.SMTPUsername, cfg.SMTPPassword)
 	uc := usecases.NewNotification(mail, logs)
 	cons := consumer.NewRabbitMQConsumer(rmqConn, uc)
