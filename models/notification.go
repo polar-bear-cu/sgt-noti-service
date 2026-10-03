@@ -8,10 +8,11 @@ const (
 )
 
 type NotificationLog struct {
-	To        string
-	Title     string
-	Content   string
-	Status    string
-	CreatedAt time.Time
-	SentAt    *time.Time
+	ReminderID string
+	To         string
+	Title      string
+	Content    string
+	Status     string
+	CreatedAt  time.Time
+	SentAt     *time.Time
 }
