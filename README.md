@@ -8,17 +8,29 @@ producer (เช่น sgt-scheduler) publish JSON ไป queue `email_notificat
 
 ```json
 {
-    "to": "test@example.com",
-    "title": "Upcoming charge: Netflix",
-    "content": "Your Netflix subscription renews in 3 days."
+  "reminder_id": "1dfaf720-2db1-4ef4-9a08-9c69e339e7a0:billing:2026-10-31",
+  "to": "test@example.com",
+  "title": "Upcoming charge: Netflix",
+  "content": "Your Netflix subscription renews in 3 days."
 }
 ```
 
-| Field     | JSON type | Meaning                                             |
-| --------- | --------- | --------------------------------------------------- |
-| `to`      | string    | Email ผู้รับ                                        |
-| `title`   | string    | หัวข้อ email ที่ producer จัดเตรียมแล้ว             |
-| `content` | string    | เนื้อหา plain-text email ที่ producer จัดเตรียมแล้ว |
+| Field         | JSON type | Meaning                                                                            |
+| ------------- | --------- | ---------------------------------------------------------------------------------- |
+| `reminder_id` | string    | optional - id ของการเตือน 1 ครั้ง (`<subscription_id>:<kind>:<date>`) ใช้กันส่งซ้ำ |
+| `to`          | string    | Email ผู้รับ                                                                       |
+| `title`       | string    | หัวข้อ email ที่ producer จัดเตรียมแล้ว                                            |
+| `content`     | string    | เนื้อหา plain-text email ที่ producer จัดเตรียมแล้ว                                |
+
+field อื่นที่ producer ส่งมา (เช่น `user_id`, `subscription_id` จาก scheduler) ถูกข้ามไป
+
+### Dedupe
+
+ถ้า message มี `reminder_id` และใน `email_logs` มี record ที่ `reminder_id` เดียวกันและ `status = sent` แล้ว จะ Ack ทิ้งโดยไม่ส่งซ้ำ (log `skip already-sent reminder_id=...`)
+
+- กัน RabbitMQ redeliver และ scheduler publish ซ้ำในวันเดียวกัน (ADR-005)
+- message ที่ไม่มี `reminder_id` (เช่น publish ทดสอบจาก UI) ส่งทุกครั้งเหมือนเดิม
+- ถ้าส่งไม่สำเร็จ (`failed`) message ถัดไปที่ id เดิมยังลองส่งได้
 
 Notification Service ไม่จำเป็นต้องรู้ schema ของ user หรือ subscription โดยตรง โดย producer เป็นผู้เตรียมข้อมูลสำหรับ email ก่อน publish message เข้า RabbitMQ
 
@@ -26,15 +38,16 @@ Notification Service ไม่จำเป็นต้องรู้ schema ข
 
 หลังจากประมวลผล email แล้ว Notification Service บันทึกผลลง MongoDB collection `email_logs`
 
-| Field        | Meaning                                             |
-| ------------ | --------------------------------------------------- |
-| `_id`        | ID ที่ MongoDB สร้างให้โดยอัตโนมัติ                 |
-| `to`         | Email ผู้รับ                                        |
-| `title`      | หัวข้อ email                                        |
-| `content`    | เนื้อหา email                                       |
-| `status`     | สถานะการส่ง เช่น `sent` หรือ `failed`               |
-| `created_at` | เวลาที่สร้าง notification log                       |
-| `sent_at`    | เวลาที่ส่ง email สำเร็จ หรือ `null` หากส่งไม่สำเร็จ |
+| Field         | Meaning                                                                   |
+| ------------- | ------------------------------------------------------------------------- |
+| `_id`         | ID ที่ MongoDB สร้างให้โดยอัตโนมัติ                                       |
+| `reminder_id` | id ของการเตือนจาก message (ว่างถ้า message ไม่มี) - index คู่กับ `status` |
+| `to`          | Email ผู้รับ                                                              |
+| `title`       | หัวข้อ email                                                              |
+| `content`     | เนื้อหา email                                                             |
+| `status`      | สถานะการส่ง เช่น `sent` หรือ `failed`                                     |
+| `created_at`  | เวลาที่สร้าง notification log                                             |
+| `sent_at`     | เวลาที่ส่ง email สำเร็จ หรือ `null` หากส่งไม่สำเร็จ                       |
 
 ### Structure
 
