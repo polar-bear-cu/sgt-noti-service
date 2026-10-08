@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -61,7 +62,18 @@ func (c *RabbitMQConsumer) handle(ctx context.Context, d amqp.Delivery) {
 		return
 	}
 
-	if err := c.uc.Send(ctx, msg.To, msg.Subject, msg.Body); err != nil {
+	err := c.uc.Send(ctx, usecases.Email{
+		ReminderID: msg.ReminderID,
+		To:         msg.To,
+		Title:      msg.Title,
+		Content:    msg.Content,
+	})
+	if errors.Is(err, usecases.ErrAlreadySent) {
+		log.Printf("email_notifications: skip already-sent reminder_id=%s", msg.ReminderID)
+		_ = d.Ack(false)
+		return
+	}
+	if err != nil {
 		log.Printf("email_notifications: send failed: %v", err)
 		_ = d.Nack(false, true)
 		return
