@@ -7,7 +7,7 @@ const (
 	StatusFailed = "failed"
 )
 
-type NotificationLog struct {
+type EmailNotification struct {
 	To        string
 	Title     string
 	Content   string

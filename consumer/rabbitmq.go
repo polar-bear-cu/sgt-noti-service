@@ -16,10 +16,10 @@ const QueueName = "email_notifications"
 
 type RabbitMQConsumer struct {
 	conn *amqp.Connection
-	uc   *usecases.NotificationUsecase
+	uc   *usecases.EmailNotificationUsecase
 }
 
-func NewRabbitMQConsumer(conn *amqp.Connection, uc *usecases.NotificationUsecase) *RabbitMQConsumer {
+func NewRabbitMQConsumer(conn *amqp.Connection, uc *usecases.EmailNotificationUsecase) *RabbitMQConsumer {
 	return &RabbitMQConsumer{conn: conn, uc: uc}
 }
 

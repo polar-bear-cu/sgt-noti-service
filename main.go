@@ -13,6 +13,7 @@ import (
 
 	"github.com/polar-bear-cu/sgt-noti-service/config"
 	"github.com/polar-bear-cu/sgt-noti-service/consumer"
+	"github.com/polar-bear-cu/sgt-noti-service/controllers"
 	"github.com/polar-bear-cu/sgt-noti-service/mailer"
 	"github.com/polar-bear-cu/sgt-noti-service/repositories"
 	"github.com/polar-bear-cu/sgt-noti-service/routes"
@@ -37,10 +38,14 @@ func main() {
 	}
 	defer func() { _ = rmqConn.Close() }()
 
-	logs := repositories.NewNotificationLogMongo(mongoClient.Database(cfg.MongoDBName))
+	db := mongoClient.Database(cfg.MongoDBName)
+	emailRepo := repositories.NewEmailNotificationMongo(db)
+	inAppRepo := repositories.NewInAppNotificationMongo(db)
 	mail := mailer.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPFrom, cfg.SMTPUsername, cfg.SMTPPassword)
-	uc := usecases.NewNotification(mail, logs)
-	cons := consumer.NewRabbitMQConsumer(rmqConn, uc)
+	emailUC := usecases.NewEmailNotification(mail, emailRepo)
+	inAppUC := usecases.NewInAppNotification(inAppRepo)
+	inAppController := controllers.NewInAppNotification(inAppUC)
+	cons := consumer.NewRabbitMQConsumer(rmqConn, emailUC)
 
 	go func() {
 		if err := cons.Run(ctx); err != nil {
@@ -49,7 +54,7 @@ func main() {
 	}()
 
 	r := gin.Default()
-	routes.Register(r)
+	routes.Register(r, inAppController)
 	srv := &http.Server{Addr: ":" + cfg.Port, Handler: r}
 
 	go func() {
