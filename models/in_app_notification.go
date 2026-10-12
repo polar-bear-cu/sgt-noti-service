@@ -8,6 +8,7 @@ import (
 
 type InAppNotification struct {
 	ID             bson.ObjectID `bson:"_id,omitempty" json:"id"`
+	ReminderID     string        `bson:"reminder_id" json:"reminder_id"`
 	UserID         string        `bson:"user_id" json:"user_id"`
 	SubscriptionID string        `bson:"subscription_id" json:"subscription_id"`
 	Title          string        `bson:"title" json:"title"`

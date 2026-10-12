@@ -14,6 +14,7 @@ import (
 var ErrInvalidNotificationID = errors.New("invalid notification id")
 
 type InAppNotificationRepository interface {
+	Upsert(ctx context.Context, notification models.InAppNotification) error
 	ListByUser(ctx context.Context, userID string) ([]models.InAppNotification, error)
 	DeleteByIDAndUser(ctx context.Context, id, userID string) (bool, error)
 	DeleteAllByUser(ctx context.Context, userID string) (int64, error)
@@ -25,6 +26,42 @@ type InAppNotificationMongo struct {
 
 func NewInAppNotificationMongo(db *mongo.Database) *InAppNotificationMongo {
 	return &InAppNotificationMongo{col: db.Collection("in_app_notifications")}
+}
+
+func (r *InAppNotificationMongo) EnsureIndexes(ctx context.Context) error {
+	_, err := r.col.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys: bson.D{{Key: "reminder_id", Value: 1}},
+			Options: options.Index().
+				SetUnique(true).
+				SetPartialFilterExpression(bson.M{"reminder_id": bson.M{"$type": "string"}}),
+		},
+		{
+			Keys: bson.D{{Key: "user_id", Value: 1}, {Key: "created_at", Value: -1}},
+		},
+	})
+	return err
+}
+
+func (r *InAppNotificationMongo) Upsert(ctx context.Context, notification models.InAppNotification) error {
+	_, err := r.col.UpdateOne(ctx,
+		bson.M{"reminder_id": notification.ReminderID},
+		bson.M{"$setOnInsert": bson.M{
+			"user_id":         notification.UserID,
+			"subscription_id": notification.SubscriptionID,
+			"title":           notification.Title,
+			"content":         notification.Content,
+			"status":          notification.Status,
+			"read_status":     notification.ReadStatus,
+			"created_at":      notification.CreatedAt,
+			"sent_at":         notification.SentAt,
+		}},
+		options.UpdateOne().SetUpsert(true),
+	)
+	if mongo.IsDuplicateKeyError(err) {
+		return nil
+	}
+	return err
 }
 
 func (r *InAppNotificationMongo) ListByUser(ctx context.Context, userID string) ([]models.InAppNotification, error) {
