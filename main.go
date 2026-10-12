@@ -13,6 +13,7 @@ import (
 
 	"github.com/polar-bear-cu/sgt-noti-service/config"
 	"github.com/polar-bear-cu/sgt-noti-service/consumer"
+	"github.com/polar-bear-cu/sgt-noti-service/controllers"
 	"github.com/polar-bear-cu/sgt-noti-service/mailer"
 	"github.com/polar-bear-cu/sgt-noti-service/repositories"
 	"github.com/polar-bear-cu/sgt-noti-service/routes"
@@ -21,6 +22,9 @@ import (
 
 func main() {
 	cfg := config.Load()
+	if cfg.JWTSecret == "" {
+		log.Fatal("JWT_SECRET required")
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -37,13 +41,20 @@ func main() {
 	}
 	defer func() { _ = rmqConn.Close() }()
 
-	logs := repositories.NewNotificationLogMongo(mongoClient.Database(cfg.MongoDBName))
-	if err := logs.EnsureIndexes(ctx); err != nil {
+	db := mongoClient.Database(cfg.MongoDBName)
+	emailRepo := repositories.NewEmailNotificationMongo(db)
+	if err := emailRepo.EnsureIndexes(ctx); err != nil {
+		log.Fatal(err)
+	}
+	inAppRepo := repositories.NewInAppNotificationMongo(db)
+	if err := inAppRepo.EnsureIndexes(ctx); err != nil {
 		log.Fatal(err)
 	}
 	mail := mailer.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPFrom, cfg.SMTPUsername, cfg.SMTPPassword)
-	uc := usecases.NewNotification(mail, logs)
-	cons := consumer.NewRabbitMQConsumer(rmqConn, uc)
+	emailUC := usecases.NewEmailNotification(mail, emailRepo)
+	inAppUC := usecases.NewInAppNotification(inAppRepo)
+	inAppController := controllers.NewInAppNotification(inAppUC)
+	cons := consumer.NewRabbitMQConsumer(rmqConn, emailUC, inAppUC)
 
 	go func() {
 		if err := cons.Run(ctx); err != nil {
@@ -52,7 +63,7 @@ func main() {
 	}()
 
 	r := gin.Default()
-	routes.Register(r)
+	routes.Register(r, inAppController, cfg.JWTSecret)
 	srv := &http.Server{Addr: ":" + cfg.Port, Handler: r}
 
 	go func() {

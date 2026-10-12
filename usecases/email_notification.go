@@ -22,21 +22,28 @@ type Email struct {
 	Content    string
 }
 
-type NotificationUsecase struct {
+type EmailNotificationUsecase struct {
 	mailer Mailer
-	logs   repositories.NotificationLogRepository
+	emails repositories.EmailNotificationRepository
 }
 
-func NewNotification(mailer Mailer, logs repositories.NotificationLogRepository) *NotificationUsecase {
-	return &NotificationUsecase{mailer: mailer, logs: logs}
+func NewEmailNotification(mailer Mailer, emails repositories.EmailNotificationRepository) *EmailNotificationUsecase {
+	return &EmailNotificationUsecase{mailer: mailer, emails: emails}
+}
+
+func (u *EmailNotificationUsecase) AlreadySent(ctx context.Context, reminderID string) (bool, error) {
+	if reminderID == "" {
+		return false, nil
+	}
+	return u.emails.HasSent(ctx, reminderID)
 }
 
 // Send skips a reminder that was already accepted by the mail server, since RabbitMQ
 // can redeliver and the scheduler can publish the same reminder twice in one day.
 // Emails without a ReminderID are always sent.
-func (u *NotificationUsecase) Send(ctx context.Context, e Email) error {
+func (u *EmailNotificationUsecase) Send(ctx context.Context, e Email) error {
 	if e.ReminderID != "" {
-		sent, err := u.logs.HasSent(ctx, e.ReminderID)
+		sent, err := u.emails.HasSent(ctx, e.ReminderID)
 		if err != nil {
 			return err
 		}
@@ -49,7 +56,7 @@ func (u *NotificationUsecase) Send(ctx context.Context, e Email) error {
 
 	sendErr := u.mailer.Send(ctx, e.To, e.Title, e.Content)
 
-	log := models.NotificationLog{
+	notification := models.EmailNotification{
 		ReminderID: e.ReminderID,
 		To:         e.To,
 		Title:      e.Title,
@@ -58,15 +65,15 @@ func (u *NotificationUsecase) Send(ctx context.Context, e Email) error {
 	}
 
 	if sendErr != nil {
-		log.Status = models.StatusFailed
-		log.SentAt = nil
+		notification.Status = models.StatusFailed
+		notification.SentAt = nil
 	} else {
 		sentAt := time.Now()
-		log.Status = models.StatusSent
-		log.SentAt = &sentAt
+		notification.Status = models.StatusSent
+		notification.SentAt = &sentAt
 	}
 
-	if err := u.logs.Create(ctx, log); err != nil {
+	if err := u.emails.Create(ctx, notification); err != nil {
 		return err
 	}
 
