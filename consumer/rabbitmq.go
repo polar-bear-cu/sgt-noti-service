@@ -16,12 +16,17 @@ import (
 const QueueName = "email_notifications"
 
 type RabbitMQConsumer struct {
-	conn *amqp.Connection
-	uc   *usecases.NotificationUsecase
+	conn  *amqp.Connection
+	uc    *usecases.EmailNotificationUsecase
+	inApp *usecases.InAppNotificationUsecase
 }
 
-func NewRabbitMQConsumer(conn *amqp.Connection, uc *usecases.NotificationUsecase) *RabbitMQConsumer {
-	return &RabbitMQConsumer{conn: conn, uc: uc}
+func NewRabbitMQConsumer(
+	conn *amqp.Connection,
+	uc *usecases.EmailNotificationUsecase,
+	inApp *usecases.InAppNotificationUsecase,
+) *RabbitMQConsumer {
+	return &RabbitMQConsumer{conn: conn, uc: uc, inApp: inApp}
 }
 
 func (c *RabbitMQConsumer) Run(ctx context.Context) error {
@@ -62,7 +67,34 @@ func (c *RabbitMQConsumer) handle(ctx context.Context, d amqp.Delivery) {
 		return
 	}
 
-	err := c.uc.Send(ctx, usecases.Email{
+	sent, err := c.uc.AlreadySent(ctx, msg.ReminderID)
+	if err != nil {
+		log.Printf("email_notifications: check sent failed reminder_id=%s: %v", msg.ReminderID, err)
+		_ = d.Nack(false, true)
+		return
+	}
+	if sent {
+		log.Printf("email_notifications: skip already-sent reminder_id=%s", msg.ReminderID)
+		_ = d.Ack(false)
+		return
+	}
+
+	if err := c.inApp.Record(ctx, usecases.InAppInput{
+		ReminderID:     msg.ReminderID,
+		UserID:         msg.UserID,
+		SubscriptionID: msg.SubscriptionID,
+		Title:          msg.InAppTitle,
+		Content:        msg.InAppContent,
+	}); err != nil {
+		if !errors.Is(err, usecases.ErrSkipInApp) {
+			log.Printf("email_notifications: in-app record failed reminder_id=%s: %v", msg.ReminderID, err)
+			_ = d.Nack(false, true)
+			return
+		}
+		log.Printf("email_notifications: %v reminder_id=%s", err, msg.ReminderID)
+	}
+
+	err = c.uc.Send(ctx, usecases.Email{
 		ReminderID: msg.ReminderID,
 		To:         msg.To,
 		Title:      msg.Title,
