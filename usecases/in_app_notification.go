@@ -77,6 +77,14 @@ func (u *InAppNotificationUsecase) DeleteAll(ctx context.Context, userID string)
 	return u.repo.DeleteAllByUser(ctx, userID)
 }
 
+func (u *InAppNotificationUsecase) UnreadCount(ctx context.Context, userID string) (int64, error) {
+	return u.repo.CountUnreadByUser(ctx, userID)
+}
+
+func (u *InAppNotificationUsecase) MarkAllRead(ctx context.Context, userID string) (int64, error) {
+	return u.repo.MarkAllReadByUser(ctx, userID)
+}
+
 func validateInApp(in InAppInput) error {
 	required := []struct{ name, value string }{
 		{"reminder_id", in.ReminderID},

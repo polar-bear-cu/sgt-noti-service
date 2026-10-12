@@ -1,6 +1,6 @@
 # Subglutee Project - Notification Service
 
-worker consume message จาก RabbitMQ แล้วบันทึก in-app notification + ส่งอีเมลผ่าน SMTP, log ผลลง Mongo และเปิด REST ให้ frontend ดึง/ลบ in-app notification
+worker consume message จาก RabbitMQ แล้วบันทึก in-app notification + ส่งอีเมลผ่าน SMTP, log ผลลง Mongo และเปิด REST ให้ frontend ดึง/อ่าน/ลบ in-app notification
 
 ### Message contract
 
@@ -71,17 +71,19 @@ consumer บันทึก in-app ก่อนส่ง email ลง collection
 | `title`           | `inapp_title` จาก message                                          |
 | `content`         | `inapp_content` จาก message                                        |
 | `status`          | `true` เมื่อบันทึกสำเร็จ                                           |
-| `read_status`     | `false` (ยังไม่มี API mark-read)                                   |
+| `read_status`     | `false` ตอนสร้าง, `true` หลัง user เปิดหน้า Notification          |
 | `created_at`      | เวลาที่สร้าง - index คู่กับ `user_id`                              |
 | `sent_at`         | เวลาที่บันทึกสำเร็จ                                                |
 
 REST (ต้องมี `Authorization: Bearer <access token>` ที่เซ็นด้วย `JWT_SECRET` เดียวกับ auth-service, ไม่มีหรือผิด = 401) ผ่าน gateway เรียกที่ `/api/v1/notifications` (gateway ตัด `/api/v1` ออกก่อนส่งต่อ):
 
-| Method   | Path                 | Response                                                          |
-| -------- | -------------------- | ----------------------------------------------------------------- |
-| `GET`    | `/notifications`     | `200` array ของ notification ของ user ที่ login อยู่ ใหม่สุดก่อน |
-| `DELETE` | `/notifications/:id` | `204`, `400` id ผิดรูปแบบ, `404` ไม่เจอหรือไม่ใช่ของ user        |
-| `DELETE` | `/notifications`     | `200 {"deleted_count": n}` ลบทั้งหมดของ user ที่ login อยู่      |
+| Method   | Path                          | Response                                                          |
+| -------- | ----------------------------- | ----------------------------------------------------------------- |
+| `GET`    | `/notifications`              | `200` array ของ notification ของ user ที่ login อยู่ ใหม่สุดก่อน |
+| `GET`    | `/notifications/unread-count` | `200 {"unread_count": n}` จำนวนที่ `read_status = false`          |
+| `PATCH`  | `/notifications/read`         | `200 {"updated_count": n}` ตั้งทุกรายการของ user เป็นอ่านแล้ว     |
+| `DELETE` | `/notifications/:id`          | `204`, `400` id ผิดรูปแบบ, `404` ไม่เจอหรือไม่ใช่ของ user        |
+| `DELETE` | `/notifications`              | `200 {"deleted_count": n}` ลบทั้งหมดของ user ที่ login อยู่      |
 
 Known gap:
 
@@ -92,12 +94,12 @@ Known gap:
 
 ```text
 consumer/       RabbitMQ consumer, decode message -> บันทึก in-app -> ส่ง email
-usecases/       EmailNotificationUsecase (email + log, dedupe), InAppNotificationUsecase (record/list/delete)
+usecases/       EmailNotificationUsecase (email + log, dedupe), InAppNotificationUsecase (record/list/read/delete)
 mailer/         SMTP adapter
 repositories/   Mongo adapter: email_logs, in_app_notifications
 models/         EmailNotification, InAppNotification struct
 dtos/           EmailMessage queue message, in-app REST response
-controllers/    GET /health, in-app notification list/delete
+controllers/    GET /health, in-app notification list/unread-count/read/delete
 middlewares/    RequireAuth (JWT HS256, ตั้ง user_id จาก sub)
 routes/         /health, /notifications
 config/         env loader + MongoDB/RabbitMQ connection

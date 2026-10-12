@@ -18,6 +18,14 @@ type DeleteNotificationsResponse struct {
 	DeletedCount int64 `json:"deleted_count"`
 }
 
+type UnreadCountResponse struct {
+	UnreadCount int64 `json:"unread_count"`
+}
+
+type MarkReadResponse struct {
+	UpdatedCount int64 `json:"updated_count"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }

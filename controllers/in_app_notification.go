@@ -76,6 +76,36 @@ func (ctl *InAppNotificationController) DeleteAll(c *gin.Context) {
 	c.JSON(http.StatusOK, dtos.DeleteNotificationsResponse{DeletedCount: deletedCount})
 }
 
+func (ctl *InAppNotificationController) UnreadCount(c *gin.Context) {
+	userID, ok := authenticatedUserID(c)
+	if !ok {
+		return
+	}
+
+	count, err := ctl.uc.UnreadCount(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dtos.ErrorResponse{Error: "failed to count unread notifications"})
+		return
+	}
+
+	c.JSON(http.StatusOK, dtos.UnreadCountResponse{UnreadCount: count})
+}
+
+func (ctl *InAppNotificationController) MarkAllRead(c *gin.Context) {
+	userID, ok := authenticatedUserID(c)
+	if !ok {
+		return
+	}
+
+	updatedCount, err := ctl.uc.MarkAllRead(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dtos.ErrorResponse{Error: "failed to mark notifications as read"})
+		return
+	}
+
+	c.JSON(http.StatusOK, dtos.MarkReadResponse{UpdatedCount: updatedCount})
+}
+
 func authenticatedUserID(c *gin.Context) (string, bool) {
 	value, exists := c.Get(userIDContextKey)
 	if !exists {

@@ -18,6 +18,8 @@ type InAppNotificationRepository interface {
 	ListByUser(ctx context.Context, userID string) ([]models.InAppNotification, error)
 	DeleteByIDAndUser(ctx context.Context, id, userID string) (bool, error)
 	DeleteAllByUser(ctx context.Context, userID string) (int64, error)
+	CountUnreadByUser(ctx context.Context, userID string) (int64, error)
+	MarkAllReadByUser(ctx context.Context, userID string) (int64, error)
 }
 
 type InAppNotificationMongo struct {
@@ -107,4 +109,20 @@ func (r *InAppNotificationMongo) DeleteAllByUser(ctx context.Context, userID str
 	}
 
 	return result.DeletedCount, nil
+}
+
+func (r *InAppNotificationMongo) CountUnreadByUser(ctx context.Context, userID string) (int64, error) {
+	return r.col.CountDocuments(ctx, bson.M{"user_id": userID, "read_status": false})
+}
+
+func (r *InAppNotificationMongo) MarkAllReadByUser(ctx context.Context, userID string) (int64, error) {
+	result, err := r.col.UpdateMany(ctx,
+		bson.M{"user_id": userID, "read_status": false},
+		bson.M{"$set": bson.M{"read_status": true}},
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	return result.ModifiedCount, nil
 }

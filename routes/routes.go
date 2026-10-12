@@ -12,6 +12,8 @@ func Register(r *gin.Engine, inAppNotification *controllers.InAppNotificationCon
 	notifications := r.Group("/notifications")
 	notifications.Use(middlewares.RequireAuth(jwtSecret))
 	notifications.GET("", inAppNotification.List)
+	notifications.GET("/unread-count", inAppNotification.UnreadCount)
+	notifications.PATCH("/read", inAppNotification.MarkAllRead)
 	notifications.DELETE("/:id", inAppNotification.DeleteOne)
 	notifications.DELETE("", inAppNotification.DeleteAll)
 }
