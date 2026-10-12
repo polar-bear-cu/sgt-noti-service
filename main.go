@@ -44,11 +44,14 @@ func main() {
 		log.Fatal(err)
 	}
 	inAppRepo := repositories.NewInAppNotificationMongo(db)
+	if err := inAppRepo.EnsureIndexes(ctx); err != nil {
+		log.Fatal(err)
+	}
 	mail := mailer.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPFrom, cfg.SMTPUsername, cfg.SMTPPassword)
 	emailUC := usecases.NewEmailNotification(mail, emailRepo)
 	inAppUC := usecases.NewInAppNotification(inAppRepo)
 	inAppController := controllers.NewInAppNotification(inAppUC)
-	cons := consumer.NewRabbitMQConsumer(rmqConn, emailUC)
+	cons := consumer.NewRabbitMQConsumer(rmqConn, emailUC, inAppUC)
 
 	go func() {
 		if err := cons.Run(ctx); err != nil {
