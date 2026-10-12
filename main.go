@@ -22,6 +22,9 @@ import (
 
 func main() {
 	cfg := config.Load()
+	if cfg.JWTSecret == "" {
+		log.Fatal("JWT_SECRET required")
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -60,7 +63,7 @@ func main() {
 	}()
 
 	r := gin.Default()
-	routes.Register(r, inAppController)
+	routes.Register(r, inAppController, cfg.JWTSecret)
 	srv := &http.Server{Addr: ":" + cfg.Port, Handler: r}
 
 	go func() {

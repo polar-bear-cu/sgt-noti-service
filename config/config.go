@@ -7,7 +7,8 @@ import (
 )
 
 type Config struct {
-	Port string
+	Port      string
+	JWTSecret string
 
 	SMTPHost     string
 	SMTPPort     string
@@ -24,7 +25,8 @@ type Config struct {
 func Load() *Config {
 	_ = godotenv.Load()
 	return &Config{
-		Port: env("PORT", "8080"),
+		Port:      env("PORT", "8080"),
+		JWTSecret: os.Getenv("JWT_SECRET"),
 
 		SMTPHost:     env("SMTP_HOST", "localhost"),
 		SMTPPort:     env("SMTP_PORT", "1025"),
