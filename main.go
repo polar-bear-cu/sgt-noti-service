@@ -40,6 +40,9 @@ func main() {
 
 	db := mongoClient.Database(cfg.MongoDBName)
 	emailRepo := repositories.NewEmailNotificationMongo(db)
+	if err := emailRepo.EnsureIndexes(ctx); err != nil {
+		log.Fatal(err)
+	}
 	inAppRepo := repositories.NewInAppNotificationMongo(db)
 	mail := mailer.NewSMTPMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPFrom, cfg.SMTPUsername, cfg.SMTPPassword)
 	emailUC := usecases.NewEmailNotification(mail, emailRepo)

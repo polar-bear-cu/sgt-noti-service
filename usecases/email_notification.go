@@ -2,14 +2,24 @@ package usecases
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/polar-bear-cu/sgt-noti-service/models"
 	"github.com/polar-bear-cu/sgt-noti-service/repositories"
 )
 
+var ErrAlreadySent = errors.New("reminder already sent")
+
 type Mailer interface {
 	Send(ctx context.Context, to, subject, body string) error
+}
+
+type Email struct {
+	ReminderID string
+	To         string
+	Title      string
+	Content    string
 }
 
 type EmailNotificationUsecase struct {
@@ -21,16 +31,30 @@ func NewEmailNotification(mailer Mailer, emails repositories.EmailNotificationRe
 	return &EmailNotificationUsecase{mailer: mailer, emails: emails}
 }
 
-func (u *EmailNotificationUsecase) Send(ctx context.Context, to, title, content string) error {
+// Send skips a reminder that was already accepted by the mail server, since RabbitMQ
+// can redeliver and the scheduler can publish the same reminder twice in one day.
+// Emails without a ReminderID are always sent.
+func (u *EmailNotificationUsecase) Send(ctx context.Context, e Email) error {
+	if e.ReminderID != "" {
+		sent, err := u.emails.HasSent(ctx, e.ReminderID)
+		if err != nil {
+			return err
+		}
+		if sent {
+			return ErrAlreadySent
+		}
+	}
+
 	now := time.Now()
 
-	sendErr := u.mailer.Send(ctx, to, title, content)
+	sendErr := u.mailer.Send(ctx, e.To, e.Title, e.Content)
 
 	notification := models.EmailNotification{
-		To:        to,
-		Title:     title,
-		Content:   content,
-		CreatedAt: now,
+		ReminderID: e.ReminderID,
+		To:         e.To,
+		Title:      e.Title,
+		Content:    e.Content,
+		CreatedAt:  now,
 	}
 
 	if sendErr != nil {
