@@ -11,7 +11,6 @@ type EmailNotification struct {
 	ReminderID string
 	To         string
 	Title      string
-	Content    string
 	Status     string
 	CreatedAt  time.Time
 	SentAt     *time.Time

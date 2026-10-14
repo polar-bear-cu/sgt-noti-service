@@ -35,7 +35,6 @@ func (r *EmailNotificationMongo) Create(ctx context.Context, notification models
 		"reminder_id": notification.ReminderID,
 		"to":          notification.To,
 		"title":       notification.Title,
-		"content":     notification.Content,
 		"status":      notification.Status,
 		"created_at":  notification.CreatedAt,
 		"sent_at":     notification.SentAt,
