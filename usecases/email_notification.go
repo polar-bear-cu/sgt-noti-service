@@ -38,6 +38,10 @@ func (u *EmailNotificationUsecase) AlreadySent(ctx context.Context, reminderID s
 	return u.emails.HasSent(ctx, reminderID)
 }
 
+func (u *EmailNotificationUsecase) DeleteByRecipient(ctx context.Context, to string) (int64, error) {
+	return u.emails.DeleteByRecipient(ctx, to)
+}
+
 // Send skips a reminder that was already accepted by the mail server, since RabbitMQ
 // can redeliver and the scheduler can publish the same reminder twice in one day.
 // Emails without a ReminderID are always sent.

@@ -43,6 +43,21 @@ producer (เช่น sgt-scheduler) publish JSON ไป queue `email_notificat
 
 Notification Service ไม่จำเป็นต้องรู้ schema ของ user หรือ subscription โดยตรง โดย producer เป็นผู้เตรียมข้อมูลสำหรับ email ก่อน publish message เข้า RabbitMQ
 
+### ลบข้อมูลเมื่อลบบัญชี
+
+sgt-user-service publish JSON ไป queue `user_deleted` ก่อนลบ user:
+
+```json
+{
+  "user_id": "11111111-1111-4111-8111-111111111111",
+  "email": "test@example.com"
+}
+```
+
+ถ้า connection กับ RabbitMQ หลุด (เช่น RabbitMQ restart) service จะ exit แล้วให้ Docker (`restart: unless-stopped`) start ใหม่เพื่อต่อ connection และ consume ทั้งสอง queue ต่อ
+
+consumer ลบ `in_app_notifications` ที่ `user_id` ตรงกัน และ `email_logs` ที่ `to` ตรงกับ `email` แล้ว Ack (log `user_deleted: removed N in-app, M email logs user_id=...`) ถ้าลบไม่สำเร็จจะ Nack requeue, message ที่ไม่มี `user_id` หรือ `email` จะถูกทิ้ง ลบซ้ำได้โดยไม่มีผลเสีย
+
 ### Notification log
 
 หลังจากประมวลผล email แล้ว Notification Service บันทึกผลลง MongoDB collection `email_logs`
@@ -87,17 +102,16 @@ REST (ต้องมี `Authorization: Bearer <access token>` ที่เซ�
 Known gap:
 
 - ลบ in-app ไปแล้ว แต่ email ของ reminder นั้นยังส่งไม่สำเร็จ (กำลัง retry) -> รอบ retry จะสร้าง in-app ใหม่
-- ลบบัญชี user แล้ว in-app ของ user นั้นยังค้างอยู่ (ยังไม่มี API ให้ user-service สั่งลบ)
 
 ### Structure
 
 ```text
-consumer/       RabbitMQ consumer, decode message -> บันทึก in-app -> ส่ง email
+consumer/       RabbitMQ consumer: email_notifications (บันทึก in-app -> ส่ง email), user_deleted (ลบข้อมูลของ user)
 usecases/       EmailNotificationUsecase (email + log, dedupe), InAppNotificationUsecase (record/list/read/delete)
 mailer/         SMTP adapter
 repositories/   Mongo adapter: email_logs, in_app_notifications
 models/         EmailNotification, InAppNotification struct
-dtos/           EmailMessage queue message, in-app REST response
+dtos/           EmailMessage, UserDeletedMessage queue message, in-app REST response
 controllers/    GET /health, in-app notification list/unread-count/read/delete
 middlewares/    RequireAuth (JWT HS256, ตั้ง user_id จาก sub)
 routes/         /health, /notifications

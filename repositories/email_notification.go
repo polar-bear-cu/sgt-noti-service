@@ -13,6 +13,7 @@ import (
 type EmailNotificationRepository interface {
 	Create(ctx context.Context, notification models.EmailNotification) error
 	HasSent(ctx context.Context, reminderID string) (bool, error)
+	DeleteByRecipient(ctx context.Context, to string) (int64, error)
 }
 
 type EmailNotificationMongo struct {
@@ -48,4 +49,12 @@ func (r *EmailNotificationMongo) HasSent(ctx context.Context, reminderID string)
 		return false, nil
 	}
 	return err == nil, err
+}
+
+func (r *EmailNotificationMongo) DeleteByRecipient(ctx context.Context, to string) (int64, error) {
+	result, err := r.col.DeleteMany(ctx, bson.M{"to": to})
+	if err != nil {
+		return 0, err
+	}
+	return result.DeletedCount, nil
 }
