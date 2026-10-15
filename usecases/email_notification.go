@@ -60,7 +60,6 @@ func (u *EmailNotificationUsecase) Send(ctx context.Context, e Email) error {
 		ReminderID: e.ReminderID,
 		To:         e.To,
 		Title:      e.Title,
-		Content:    e.Content,
 		CreatedAt:  now,
 	}
 

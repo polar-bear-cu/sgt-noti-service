@@ -53,7 +53,6 @@ Notification Service ไม่จำเป็นต้องรู้ schema ข
 | `reminder_id` | id ของการเตือนจาก message (ว่างถ้า message ไม่มี) - index คู่กับ `status` |
 | `to`          | Email ผู้รับ                                                              |
 | `title`       | หัวข้อ email                                                              |
-| `content`     | เนื้อหา email                                                             |
 | `status`      | สถานะการส่ง เช่น `sent` หรือ `failed`                                     |
 | `created_at`  | เวลาที่สร้าง notification log                                             |
 | `sent_at`     | เวลาที่ส่ง email สำเร็จ หรือ `null` หากส่งไม่สำเร็จ                       |
