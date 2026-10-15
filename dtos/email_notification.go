@@ -10,3 +10,8 @@ type EmailMessage struct {
 	InAppTitle     string `json:"inapp_title"`
 	InAppContent   string `json:"inapp_content"`
 }
+
+type UserDeletedMessage struct {
+	UserID string `json:"user_id"`
+	Email  string `json:"email"`
+}
